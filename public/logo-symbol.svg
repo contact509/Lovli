@@ -1,0 +1,18 @@
+
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lovli.IO symbol">
+  <defs>
+    <radialGradient id="lovliGlowV" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#9B84F0"></stop>
+      <stop offset="1" stop-color="#7C5CE6"></stop>
+    </radialGradient>
+    <radialGradient id="lovliGlowA" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#F2B25E"></stop>
+      <stop offset="1" stop-color="#E89B3C"></stop>
+    </radialGradient>
+  </defs>
+  
+  <path d="M30 36 C 34 40, 38 42, 43 43" stroke="#C9BDF5" stroke-width="3" stroke-linecap="round"></path>
+  
+  <circle cx="25" cy="30" r="13" fill="url(#lovliGlowV)"></circle>
+  <circle cx="45" cy="44" r="10" fill="url(#lovliGlowA)"></circle>
+</svg>

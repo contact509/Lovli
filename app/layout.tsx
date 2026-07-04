@@ -1,6 +1,30 @@
+import { Playfair_Display, DM_Sans, Lora } from "next/font/google";
+import "./globals.css";
+
+const playfair = Playfair_Display({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
+});
+
+const lora = Lora({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-lora",
+});
+
 export const metadata = {
-  title: "Lovli",
-  description: "Najpierw poznaj — wygląd na końcu.",
+  title: "Lovli.IO — Najpierw sens. Potem miłość.",
+  description:
+    "Poznaj wartości, cele i model szczęścia drugiej osoby. Zdjęcie odsłonisz, gdy zbudujecie dopasowanie.",
 };
 
 export default function RootLayout({
@@ -9,17 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pl">
-      <body
-        style={{
-          margin: 0,
-          fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          background: "#0e0e12",
-          color: "#f3f1ea",
-        }}
-      >
-        {children}
-      </body>
+    <html lang="pl" className={`${playfair.variable} ${dmSans.variable} ${lora.variable}`}>
+      <body>{children}</body>
     </html>
   );
 }

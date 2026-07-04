@@ -1,0 +1,12 @@
+
+<svg width="300" height="80" viewBox="0 0 300 80" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Lovli.IO">
+  <defs>
+    <radialGradient id="wmDot" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#F2B25E"></stop>
+      <stop offset="1" stop-color="#E89B3C"></stop>
+    </radialGradient>
+  </defs>
+  <text x="16" y="54" font-family="&#39;Playfair Display&#39;, Georgia, serif" font-size="46" font-weight="600" fill="#2E2A4D" letter-spacing="-0.5">Lovli</text>
+  <circle cx="176" cy="49" r="5.5" fill="url(#wmDot)"></circle>
+  <text x="188" y="54" font-family="&#39;Playfair Display&#39;, Georgia, serif" font-size="46" font-weight="600" fill="#7C5CE6" letter-spacing="-0.5">IO</text>
+</svg>

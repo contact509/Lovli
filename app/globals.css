@@ -1,0 +1,207 @@
+/* ============================================================
+   Lovli.IO — design tokens (imported from Claude Design project
+   "Lovli.IO Design System", b5c0130d). Source of truth:
+   _apps/lovli-io/design-system/tokens/*.css
+   Fonts are provided by next/font in app/layout.tsx via
+   --font-playfair / --font-dm-sans / --font-lora variables.
+   ============================================================ */
+
+:root {
+  /* --- Base palette (raw values) --- */
+  --paper:           #FAF6EF;   /* warm cream — main background */
+  --paper-deep:      #F3EDE1;   /* deeper cream / section tint */
+  --white:           #FFFFFF;   /* cards */
+  --ink:             #2E2A4D;   /* warm plum ink — primary text */
+  --ink-soft:        #6F6B8A;   /* secondary text */
+
+  --violet:          #7C5CE6;   /* primary accent — values, depth */
+  --violet-soft:     #9B84F0;
+  --violet-deep:     #5F41C9;
+  --violet-tint:     #F0EBFF;   /* friendly violet wash for chips/fills */
+
+  --amber:           #E89B3C;   /* honeyed amber — reward, discovery */
+  --amber-soft:      #F2B25E;
+  --amber-tint:      #FBF0DE;
+
+  --emerald:         #3FA97C;   /* success / high match */
+  --emerald-soft:    #63C094;
+  --emerald-tint:    #E4F4EC;
+
+  --cream:           #F1F0EB;   /* light text on dark / accents */
+  --fog:             #E7E3F2;   /* soft lavender fog — hidden / veiled */
+  --fog-deep:        #56527A;   /* veil overlay tone (over photos) */
+
+  --line:            #ECE6DA;   /* hairline borders on light */
+  --line-strong:     #DCD4C4;
+
+  /* legacy dark raws (used by the dark skin) */
+  --obsidian:        #191B2C;
+  --indigo-card:     #222440;
+  --indigo-raised:   #2A2D4E;
+  --lilac-grey:      #A6A3BC;
+
+  /* --- Gradients — soft and sparing, never neon --- */
+  --grad-depth:   linear-gradient(135deg, #8A6CF0 0%, #6B4DD6 100%);
+  --grad-reward:  linear-gradient(135deg, #F2B25E 0%, #E89B3C 100%);
+  --grad-veil:    linear-gradient(180deg, rgba(46,42,77,0) 0%, rgba(46,42,77,0.7) 100%);
+  --grad-cosmos:  radial-gradient(120% 120% at 50% 0%, #FFFDF8 0%, #F3EDE1 70%);
+
+  /* --- Semantic aliases (LIGHT — default) --- */
+  --bg-app:          var(--paper);
+  --bg-cosmos:       var(--grad-cosmos);
+  --surface-card:    var(--white);
+  --surface-raised:  #FDFBF6;
+  --surface-veil:    var(--fog);
+
+  --text-primary:    var(--ink);
+  --text-secondary:  var(--ink-soft);
+  --text-onAccent:   #FFFFFF;
+  --text-muted:      #9B97B0;
+
+  --accent-value:        var(--violet);
+  --accent-value-hover:  var(--violet-deep);
+  --accent-value-press:  #52389F;
+  --accent-value-tint:   var(--violet-tint);
+  --accent-reward:       var(--amber);
+  --accent-reward-tint:  var(--amber-tint);
+  --accent-success:      var(--emerald);
+  --accent-success-tint: var(--emerald-tint);
+
+  --border-hairline: var(--line);
+  --border-strong:   var(--line-strong);
+  --focus-ring:      color-mix(in oklab, var(--violet) 40%, transparent);
+
+  /* --- Typography --- */
+  --font-serif-display: var(--font-playfair), 'Cormorant Garamond', Georgia, serif;
+  --font-sans:          var(--font-dm-sans), 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif-quote:   var(--font-lora), Georgia, serif;
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold: 600;
+  --fw-bold:    700;
+
+  --fs-display: 40px;
+  --fs-h1:      30px;
+  --fs-h2:      24px;
+  --fs-h3:      20px;
+  --fs-body-lg: 18px;
+  --fs-body:    16px;
+  --fs-caption: 13px;
+  --fs-micro:   11px;
+  --fs-quote:   20px;
+
+  --lh-tight:   1.2;
+  --lh-snug:    1.4;
+  --lh-body:    1.65;
+  --lh-relaxed: 1.8;
+
+  --ls-tight:   -0.02em;
+  --ls-normal:  0;
+  --ls-wide:    0.04em;
+  --ls-caps:    0.14em;
+
+  --type-display: var(--fw-semibold) var(--fs-display)/var(--lh-tight) var(--font-serif-display);
+  --type-h1:      var(--fw-semibold) var(--fs-h1)/var(--lh-tight) var(--font-serif-display);
+  --type-h2:      var(--fw-medium)   var(--fs-h2)/var(--lh-snug) var(--font-serif-display);
+  --type-h3:      var(--fw-semibold) var(--fs-h3)/var(--lh-snug) var(--font-sans);
+  --type-body:    var(--fw-regular)  var(--fs-body)/var(--lh-body) var(--font-sans);
+  --type-body-lg: var(--fw-regular)  var(--fs-body-lg)/var(--lh-body) var(--font-sans);
+  --type-caption: var(--fw-medium)   var(--fs-caption)/var(--lh-snug) var(--font-sans);
+  --type-quote:   italic var(--fw-regular) var(--fs-quote)/var(--lh-relaxed) var(--font-serif-quote);
+  --type-micro:   var(--fw-medium) var(--fs-micro)/var(--lh-snug) var(--font-sans);
+
+  /* --- Spacing scale (4px base) --- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* --- Radii — organic, soft, never sharp --- */
+  --radius-xs:   8px;
+  --radius-sm:   12px;
+  --radius-md:   16px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-pill: 999px;
+
+  /* --- Layout --- */
+  --screen-w:      390px;
+  --gutter:        20px;
+  --content-max:   350px;
+
+  /* --- Elevation / shadows (soft, warm, diffuse) --- */
+  --shadow-sm:   0 1px 3px rgba(70,55,30,0.08);
+  --shadow-md:   0 8px 24px rgba(70,55,30,0.10);
+  --shadow-lg:   0 20px 50px rgba(70,55,30,0.14);
+  --glow-violet: 0 8px 24px rgba(124,92,230,0.22);
+  --glow-amber:  0 8px 24px rgba(232,155,60,0.25);
+  --glow-emerald:0 8px 24px rgba(63,169,124,0.22);
+
+  /* --- Blur (veils on hidden content) --- */
+  --blur-veil:   14px;
+  --blur-strong: 24px;
+
+  /* --- Motion — slow, calm, deliberate. No bounce. --- */
+  --ease-calm:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout:  cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast:    180ms;
+  --dur-base:    320ms;
+  --dur-slow:    600ms;
+  --dur-reveal:  900ms;
+}
+
+/* ============================================================
+   DARK skin — evening / intimate mode. EXPLICIT OPT-IN ONLY:
+   apply class "lovli-dark" on a wrapper. Deliberately NOT hooked
+   to [data-theme] or prefers-color-scheme.
+   ============================================================ */
+.lovli-dark {
+  --bg-app:          var(--obsidian);
+  --bg-cosmos:       radial-gradient(120% 120% at 50% 0%, #262947 0%, #191B2C 65%);
+  --surface-card:    var(--indigo-card);
+  --surface-raised:  var(--indigo-raised);
+  --surface-veil:    #3B3E60;
+
+  --text-primary:    var(--cream);
+  --text-secondary:  var(--lilac-grey);
+  --text-onAccent:   #FFFFFF;
+  --text-muted:      #7B7894;
+
+  --accent-value:        #9B84F0;
+  --accent-value-hover:  #B09FF4;
+  --accent-value-press:  #8A6CF0;
+  --accent-value-tint:   #322D56;
+  --accent-reward:       #F2B25E;
+  --accent-reward-tint:  #3C3350;
+  --accent-success:      #63C094;
+  --accent-success-tint: #263A48;
+
+  --border-hairline: #33365A;
+  --border-strong:   #454875;
+  --focus-ring:      color-mix(in oklab, #9B84F0 45%, transparent);
+}
+
+/* --- Base --- */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
