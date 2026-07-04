@@ -1,0 +1,29 @@
+name: Supabase keep-alive
+
+# Second, observable leg of the keep-alive (the Vercel Hobby cron has no run
+# history and silently drifted/skipped — the DB paused on 2026-07-04 despite
+# it). Runs twice a day; a failed ping fails the job, and GitHub notifies the
+# repo owner by email. Run history doubles as proof the pings actually fire.
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+    - cron: "17 17 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/keepalive
+        run: |
+          for i in 1 2 3; do
+            body=$(curl -sS --max-time 30 -w '\n%{http_code}' https://project-o56q1.vercel.app/api/keepalive) && {
+              code=$(echo "$body" | tail -n1)
+              echo "attempt $i -> HTTP $code: $(echo "$body" | head -n1)"
+              [ "$code" = "200" ] && exit 0
+            }
+            sleep 20
+          done
+          echo "keep-alive failed after 3 attempts" >&2
+          exit 1
