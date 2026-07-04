@@ -1,4 +1,5 @@
 import { Button, LockedReveal, MatchBadge } from "@/components/ds";
+import WaitlistForm from "@/components/WaitlistForm";
 import "./home.css";
 
 // warm-toned portrait (golden hour) so the veiled tile reads warm, never navy
@@ -221,14 +222,14 @@ function Fin() {
       <div className="wrap fin">
         <h2>Relacje z głębią zaczynają się tutaj</h2>
         <p style={{ color: "var(--text-secondary)", margin: "0 0 32px" }}>
-          Aplikacja jest w budowie. Chcesz być wśród pierwszych osób, które ją
-          przetestują — albo wesprzeć projekt? Odezwij się przez stronę fundacji.
+          Aplikacja jest w budowie. Zostaw adres, a damy Ci znać, gdy ruszą
+          pierwsze testy — będziesz w pierwszej grupie.
         </p>
-        <div className="cta-row">
-          <a href={GOODWAY} target="_blank" rel="noopener noreferrer">
-            <Button size="lg">Dołącz przez fundację Good Way</Button>
-          </a>
-        </div>
+        <WaitlistForm />
+        <p className="fin-note">
+          Zero spamu — jedna wiadomość o starcie. Projekt non-profit fundacji{" "}
+          <a href={GOODWAY} target="_blank" rel="noopener noreferrer">Good Way</a>.
+        </p>
       </div>
     </section>
   );
