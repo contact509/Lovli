@@ -51,6 +51,13 @@
 .wpoint h3 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }
 .wpoint p { color: var(--text-secondary); font-size: 15px; line-height: 1.65; margin: 0; text-wrap: pretty; }
 
+/* constellation (value graph) */
+.vg-lead { color: var(--text-secondary); font-size: 16px; line-height: 1.7; max-width: 560px; margin: 0 0 28px; text-wrap: pretty; }
+.vg-wrap { position: relative; height: 520px; background: var(--surface-card); border: 1px solid var(--border-hairline); border-radius: 28px; box-shadow: var(--shadow-md); overflow: hidden; touch-action: none; }
+.vg-wrap canvas { display: block; width: 100%; height: 100%; }
+.vg-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); background: var(--paper-deep); color: var(--text-secondary); font-size: 12.5px; border-radius: 999px; padding: 7px 16px; pointer-events: none; white-space: nowrap; }
+.vg-note { color: var(--text-muted); font-size: 13px; margin: 14px 0 0; text-align: center; }
+
 /* rules */
 .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 44px; }
 .rule { background: var(--paper-deep); border-radius: 20px; padding: 26px 24px; }
@@ -102,4 +109,6 @@
   .rules { grid-template-columns: 1fr; }
   .wl-form { flex-direction: column; align-items: stretch; }
   .wl-form input[type="email"] { max-width: none; }
+  .vg-wrap { height: 400px; }
+  .vg-hint { white-space: normal; text-align: center; max-width: 80%; }
 }

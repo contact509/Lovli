@@ -1,5 +1,6 @@
 import { Button, LockedReveal, MatchBadge } from "@/components/ds";
 import WaitlistForm from "@/components/WaitlistForm";
+import ValueGraph from "@/components/ValueGraph";
 import "./home.css";
 
 // warm-toned portrait (golden hour) so the veiled tile reads warm, never navy
@@ -21,6 +22,7 @@ function Nav() {
         <div className="navlinks">
           <a href="#dlaczego">Dlaczego</a>
           <a href="#jak">Jak to działa</a>
+          <a href="#konstelacja">Konstelacja</a>
           <a href="#zasady">Zasady</a>
           <a href="#badania">Badania</a>
           <a href="#dolacz"><Button size="sm">Dołącz</Button></a>
@@ -140,6 +142,26 @@ function How() {
   );
 }
 
+function Constellation() {
+  return (
+    <section id="konstelacja" className="lv-section" style={{ paddingTop: 0 }}>
+      <div className="wrap">
+        <h2>Zobacz, jak blisko są ludzie o Twoich wartościach</h2>
+        <p className="vg-lead">
+          Każdy punkt to osoba opisana swoimi wartościami — nie zdjęciem.
+          Im bliżej siebie, tym większa zgodność. Tak wygląda przestrzeń,
+          w której Lovli szuka dopasowań.
+        </p>
+        <ValueGraph />
+        <p className="vg-note">
+          Wizualizacja poglądowa na danych przykładowych — w aplikacji zobaczysz
+          tu swoją prawdziwą konstelację.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function Rules() {
   const rules = [
     {
@@ -253,6 +275,7 @@ export default function Home() {
       <Hero />
       <Why />
       <How />
+      <Constellation />
       <Rules />
       <Quote />
       <Research />
