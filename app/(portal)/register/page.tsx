@@ -51,7 +51,6 @@ export default function RegisterPage() {
   const [password, setPassword] = React.useState("");
   const [displayName, setDisplayName] = React.useState("");
   const [gender, setGender] = React.useState<string | null>(null);
-  const [seeking, setSeeking] = React.useState<string | null>(null);
   const [birthYear, setBirthYear] = React.useState("");
   const [consent, setConsent] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -71,7 +70,7 @@ export default function RegisterPage() {
     setError("");
     const year = parseInt(birthYear, 10);
     if (!displayName.trim()) return setError("Podaj imię.");
-    if (!gender || !seeking) return setError("Zaznacz płeć i kogo szukasz.");
+    if (!gender) return setError("Zaznacz płeć.");
     if (!Number.isInteger(year) || year < 1920 || year > new Date().getFullYear() - 18)
       return setError("Lovli jest dla osób pełnoletnich — sprawdź rok urodzenia.");
     if (!consent) return setError("Udział w projekcie badawczym wymaga zgody.");
@@ -99,7 +98,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          display_name: displayName.trim(), gender, seeking,
+          display_name: displayName.trim(), gender,
           birth_year: year, research_consent: consent,
         }),
       });
@@ -142,8 +141,6 @@ export default function RegisterPage() {
             helper="Widoczne dopiero po wzajemnym odsłonięciu — dopasowania widzą tylko inicjały."
             onChange={(e) => setDisplayName(e.target.value)} />
           <PickOne label="Płeć" value={gender} onPick={setGender} options={GENDERS} />
-          <PickOne label="Kogo szukasz" value={seeking} onPick={setSeeking}
-            options={[{ v: "female", label: "Kobiety" }, { v: "male", label: "Mężczyzny" }]} />
           <TextInput label="Rok urodzenia" value={birthYear} placeholder="np. 1996"
             inputMode="numeric" onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, "").slice(0, 4))} />
 

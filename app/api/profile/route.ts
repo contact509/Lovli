@@ -4,8 +4,9 @@ import { getSessionUser } from "@/lib/supabase-server";
 
 /**
  * POST /api/profile — create the Lovli-side profile after auth signup.
- * Gender/seeking/birth year NEVER enter the engine payload — they are portal
- * data used for mutual-preference filtering. Research consent is required
+ * Gender/birth year NEVER enter the engine payload — portal data only.
+ * Matching is cross-gender by design (Boruta): `seeking` is DERIVED as the
+ * opposite gender, never user-selectable. Research consent is required
  * (the app is a research instrument — good-way.org hypotheses).
  */
 export async function POST(req: Request) {
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
   if (!db) return NextResponse.json({ error: "database not configured" }, { status: 503 });
 
   let body: {
-    display_name?: string; gender?: string; seeking?: string;
+    display_name?: string; gender?: string;
     birth_year?: number; research_consent?: boolean;
   };
   try {
@@ -26,12 +27,11 @@ export async function POST(req: Request) {
   }
 
   const display_name = (body.display_name ?? "").trim().slice(0, 60);
-  const { gender, seeking } = body;
+  const { gender } = body;
   if (!display_name) return NextResponse.json({ error: "display_name required" }, { status: 422 });
   if (gender !== "male" && gender !== "female")
     return NextResponse.json({ error: "gender must be male|female" }, { status: 422 });
-  if (seeking !== "male" && seeking !== "female")
-    return NextResponse.json({ error: "seeking must be male|female" }, { status: 422 });
+  const seeking = gender === "male" ? "female" : "male";
   if (!body.research_consent)
     return NextResponse.json({ error: "research consent required" }, { status: 422 });
   const birth_year = Number.isInteger(body.birth_year) ? body.birth_year : null;
