@@ -30,6 +30,10 @@ export function TextInput({
   disabled?: boolean;
   id?: string;
   style?: React.CSSProperties;
+  type?: string;
+  inputMode?: React.InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>;
 }) {
   const [focused, setFocused] = React.useState(false);
   const autoId = React.useId();
@@ -80,7 +84,7 @@ export function TextInput({
           onBlur={() => setFocused(false)}
           onChange={onChange}
           style={base}
-          {...rest}
+          {...(rest as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
         />
       ) : (
         <input
