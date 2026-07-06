@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { computeMatches } from "@/lib/matching";
+import { computeMatches, computeSpace } from "@/lib/matching";
 import type { MatchBreakdown } from "@/lib/engine/scoring";
 import { MatchBadge, Card } from "@/components/ds";
 import { DeleteAccountButton } from "@/components/portal/DeleteAccountButton";
+import SpaceGraph from "@/components/portal/SpaceGraph";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,13 @@ export default async function MatchesPage() {
   if (!profile) redirect("/register");
   if (!profile.onboarding_completed_at) redirect("/onboarding");
 
-  const matches = await computeMatches(db, user.id, 20);
+  // one scoring pass: top-20 for cards, full map feeds constellation hover %
+  const all = await computeMatches(db, user.id, 500);
+  const matches = all.slice(0, 20);
+  const space = await computeSpace(
+    db, user.id,
+    Object.fromEntries(all.map((m) => [m.user_id, Math.round(m.match_score * 100)]))
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -43,6 +50,19 @@ export default async function MatchesPage() {
           dopiero wtedy, gdy oboje tego chcecie. Procent to zgodność wartości, nie wyglądu.
         </p>
       </div>
+
+      {space && (
+        <Card padding="var(--space-4)">
+          <h2 style={{ margin: "4px 8px 2px", fontFamily: "var(--font-serif-display)", fontSize: "clamp(20px, 3.5vw, 26px)", fontWeight: 600 }}>
+            Przestrzeń wartości
+          </h2>
+          <p style={{ margin: "0 8px 6px", font: "var(--type-caption)", color: "var(--text-secondary)" }}>
+            Każdy punkt to prawdziwy profil wartości. Im bliżej Ciebie, tym większa zgodność.
+            Przeciągnij, by obrócić; najedź na punkt, by zobaczyć dopasowanie.
+          </p>
+          <SpaceGraph people={space.people} sims={space.sims} />
+        </Card>
+      )}
 
       {matches.length === 0 ? (
         <Card>
