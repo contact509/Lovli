@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SpacePerson } from "@/lib/matching";
+import { Button, Card, MatchBadge } from "@/components/ds";
+import { ComponentBars } from "./match-ui";
+import { track } from "@/lib/telemetry-client";
 
 /**
  * The in-app value constellation — same 3D physics as the landing ValueGraph,
  * but fed with REAL user vectors: nodes are actual people in your pool,
- * layout distance follows weighted-Euclidean similarity, hover shows the real
- * match_score for opposite-gender nodes. Violet = men, amber = women, "Ty"
- * ringed. Drag to rotate; slow auto-spin otherwise.
+ * layout distance follows weighted-Euclidean similarity. Violet = men,
+ * amber = women, "Ty" ringed. Interactions: drag rotates, mouse wheel /
+ * pinch zooms toward the cursor ("fly in"), ↺ resets the view, and clicking
+ * an opposite-gender point opens their match card (initials + % + breakdown
+ * + FLIRT interest CTA). Initials only — the anonymity rule of the cards
+ * applies here too.
  */
 
 function mulberry32(seed: number) {
@@ -23,6 +29,8 @@ function mulberry32(seed: number) {
 const MAN_COLOR = "#7C5CE6";
 const WOMAN_COLOR = "#E89B3C";
 const INK = "#2E2A4D";
+const MIN_ZOOM = 0.6;
+const MAX_ZOOM = 5;
 
 type N = {
   x: number; y: number; z: number;
@@ -42,7 +50,7 @@ function build(people: SpacePerson[], sims: number[][], R: number) {
     return {
       x: x * R, y: y * R, z: z * R, vx: 0, vy: 0, vz: 0,
       r: p.you ? 8 : 3.4 + rnd() * 2.6,
-      name: p.name, man: p.man, you: p.you, matchPct: p.matchPct,
+      name: p.initials, man: p.man, you: p.you, matchPct: p.matchPct,
       px: 0, py: 0, ps: 1, pz: 0,
     };
   });
@@ -120,6 +128,14 @@ export default function SpaceGraph({
   people: SpacePerson[]; sims: number[][]; height?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const selectedRef = useRef<number | null>(null);
+  const [viewChanged, setViewChanged] = useState(false);
+  const viewChangedRef = useRef(false);
+  const resetRef = useRef<() => void>(() => {});
+  const [invited, setInvited] = useState<Set<string>>(new Set());
+
+  const select = (i: number | null) => { selectedRef.current = i; setSelected(i); };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -134,8 +150,20 @@ export default function SpaceGraph({
     let running = true, raf = 0;
     let yaw = 0.4, pitch = 0.15;
     let dragging = false, lastX = 0, lastY = 0;
+    let downX = 0, downY = 0, moved = false;
+    let zoom = 1, panX = 0, panY = 0;
+    let pinchD = 0;
+    const pts = new Map<number, { x: number; y: number }>();
     const spin = 0.0022;
     const youMan = people[0]?.man ?? true;
+
+    const markView = () => {
+      if (!viewChangedRef.current) { viewChangedRef.current = true; setViewChanged(true); }
+    };
+    resetRef.current = () => {
+      zoom = 1; panX = 0; panY = 0;
+      viewChangedRef.current = false; setViewChanged(false);
+    };
 
     const resize = () => {
       const rect = canvas.parentElement!.getBoundingClientRect();
@@ -157,12 +185,23 @@ export default function SpaceGraph({
         const z1 = -n.x * sy + n.z * cy2;
         const y2 = n.y * cp - z1 * sp;
         const z2 = n.y * sp + z1 * cp;
-        const s = f / (f + z2 + R * 1.2);
-        n.px = W / 2 + x1 * s;
-        n.py = H / 2 + y2 * s;
+        const s = (f / (f + z2 + R * 1.2)) * zoom;
+        n.px = W / 2 + panX + x1 * s;
+        n.py = H / 2 + panY + y2 * s;
         n.ps = s;
         n.pz = z2;
       }
+    };
+
+    /** Zoom keeping the point under (cx,cy) fixed — the "fly in" feel. */
+    const applyZoom = (factor: number, cx: number, cy: number) => {
+      const nz = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+      const k = nz / zoom;
+      if (k === 1) return;
+      panX = cx - W / 2 - (cx - W / 2 - panX) * k;
+      panY = cy - H / 2 - (cy - H / 2 - panY) * k;
+      zoom = nz;
+      markView();
     };
 
     function draw() {
@@ -179,7 +218,7 @@ export default function SpaceGraph({
 
       for (const e of edges) {
         const a = nodes[e.a], b = nodes[e.b];
-        const depth = Math.min(a.ps, b.ps);
+        const depth = Math.min(a.ps, b.ps) / zoom;
         const active = hover >= 0 && (e.a === hover || e.b === hover);
         const base = Math.max(0, (depth - 0.55) * 0.35) * (0.35 + e.sim);
         ctx!.strokeStyle = active
@@ -197,13 +236,21 @@ export default function SpaceGraph({
         const n = nodes[i];
         const active = i === hover || linked.has(i);
         const dim = hover >= 0 && !active && !n.you;
-        const depthAlpha = 0.25 + Math.max(0, Math.min(1, (n.ps - 0.55) * 1.6)) * 0.75;
+        const depthAlpha = 0.25 + Math.max(0, Math.min(1, (n.ps / zoom - 0.55) * 1.6)) * 0.75;
         ctx!.globalAlpha = dim ? depthAlpha * 0.35 : depthAlpha;
         const rad = Math.max(1.2, n.r * n.ps);
         ctx!.beginPath();
         ctx!.arc(n.px, n.py, rad, 0, Math.PI * 2);
         ctx!.fillStyle = n.man ? MAN_COLOR : WOMAN_COLOR;
         ctx!.fill();
+        if (i === selectedRef.current) {
+          ctx!.globalAlpha = 1;
+          ctx!.strokeStyle = "rgba(124,92,230,0.55)";
+          ctx!.lineWidth = Math.min(4, 3 * n.ps);
+          ctx!.beginPath();
+          ctx!.arc(n.px, n.py, rad + Math.min(7, 4 * n.ps), 0, Math.PI * 2);
+          ctx!.stroke();
+        }
         if (n.you) {
           ctx!.strokeStyle = "rgba(232,155,60,0.45)";
           ctx!.lineWidth = 5 * n.ps;
@@ -212,9 +259,9 @@ export default function SpaceGraph({
           ctx!.stroke();
           ctx!.globalAlpha = 1;
           ctx!.fillStyle = INK;
-          ctx!.font = `600 ${Math.max(11, 13 * n.ps)}px var(--font-dm-sans, sans-serif)`;
+          ctx!.font = `600 ${Math.min(18, Math.max(11, 13 * n.ps))}px var(--font-dm-sans, sans-serif)`;
           ctx!.textAlign = "center";
-          ctx!.fillText("Ty", n.px, n.py - rad - 8 * n.ps);
+          ctx!.fillText("Ty", n.px, n.py - rad - 8 * Math.min(n.ps, 1.6));
         }
         ctx!.globalAlpha = 1;
       }
@@ -223,7 +270,7 @@ export default function SpaceGraph({
         const n = nodes[hover];
         const cross = n.man !== youMan;
         const label = cross && n.matchPct !== null
-          ? `${n.name} · ${n.matchPct}% dopasowania`
+          ? `${n.name} · ${n.matchPct}% — zobacz kartę`
           : n.name;
         ctx!.font = "600 13px var(--font-dm-sans, sans-serif)";
         const w = ctx!.measureText(label).width + 22;
@@ -241,7 +288,7 @@ export default function SpaceGraph({
 
     const loop = () => {
       if (running) {
-        if (!reduced && !dragging && hover < 0) yaw += spin;
+        if (!reduced && !dragging && hover < 0 && selectedRef.current === null) yaw += spin;
         draw();
       }
       raf = requestAnimationFrame(loop);
@@ -260,9 +307,24 @@ export default function SpaceGraph({
       const r = canvas.getBoundingClientRect();
       return { mx: ev.clientX - r.left, my: ev.clientY - r.top };
     };
+    const setCursor = () => {
+      const clickable =
+        hover > 0 && nodes[hover] && nodes[hover].man !== youMan && nodes[hover].matchPct !== null;
+      canvas.style.cursor = dragging ? "grabbing" : clickable ? "pointer" : "grab";
+    };
     const onMove = (ev: PointerEvent) => {
       const { mx, my } = pos(ev);
+      if (pts.has(ev.pointerId)) pts.set(ev.pointerId, { x: mx, y: my });
+      if (pts.size === 2) {
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        if (pinchD > 0) applyZoom(d / pinchD, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        pinchD = d;
+        moved = true;
+        return;
+      }
       if (dragging) {
+        if (Math.abs(mx - downX) + Math.abs(my - downY) > 5) moved = true;
         yaw += (mx - lastX) * 0.005;
         pitch += (my - lastY) * 0.003;
         pitch = Math.max(-0.9, Math.min(0.9, pitch));
@@ -270,20 +332,42 @@ export default function SpaceGraph({
         return;
       }
       hover = pick(mx, my);
-      canvas.style.cursor = hover >= 0 ? "pointer" : "grab";
+      setCursor();
     };
     const onDown = (ev: PointerEvent) => {
       const { mx, my } = pos(ev);
-      dragging = true; lastX = mx; lastY = my;
-      canvas.setPointerCapture(ev.pointerId);
+      pts.set(ev.pointerId, { x: mx, y: my });
+      try { canvas.setPointerCapture(ev.pointerId); } catch {}
+      if (pts.size === 2) {
+        dragging = false;
+        const [a, b] = [...pts.values()];
+        pinchD = Math.hypot(a.x - b.x, a.y - b.y);
+        return;
+      }
+      dragging = true; moved = false;
+      downX = mx; downY = my; lastX = mx; lastY = my;
       canvas.style.cursor = "grabbing";
     };
     const onUp = (ev: PointerEvent) => {
+      pts.delete(ev.pointerId);
+      if (pts.size < 2) pinchD = 0;
+      const wasDrag = dragging;
       dragging = false;
-      canvas.releasePointerCapture(ev.pointerId);
-      canvas.style.cursor = hover >= 0 ? "pointer" : "grab";
+      if (canvas.hasPointerCapture(ev.pointerId)) canvas.releasePointerCapture(ev.pointerId);
+      if (wasDrag && !moved && ev.type === "pointerup") {
+        const { mx, my } = pos(ev);
+        const i = pick(mx, my);
+        if (i > 0 && nodes[i].man !== youMan && nodes[i].matchPct !== null) select(i);
+        else select(null);
+      }
+      setCursor();
     };
     const onLeave = () => { hover = -1; };
+    const onWheel = (ev: WheelEvent) => {
+      ev.preventDefault();
+      const r = canvas.getBoundingClientRect();
+      applyZoom(Math.exp(-ev.deltaY * 0.0012), ev.clientX - r.left, ev.clientY - r.top);
+    };
 
     const io = new IntersectionObserver(
       ([entry]) => { running = entry.isIntersecting; },
@@ -300,6 +384,7 @@ export default function SpaceGraph({
     canvas.addEventListener("pointerup", onUp);
     canvas.addEventListener("pointercancel", onUp);
     canvas.addEventListener("pointerleave", onLeave);
+    canvas.addEventListener("wheel", onWheel, { passive: false });
     raf = requestAnimationFrame(loop);
 
     return () => {
@@ -312,14 +397,20 @@ export default function SpaceGraph({
       canvas.removeEventListener("pointerup", onUp);
       canvas.removeEventListener("pointercancel", onUp);
       canvas.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("wheel", onWheel);
     };
   }, [people, sims]);
+
+  const sel = selected !== null ? people[selected] : null;
+  const micro: React.CSSProperties = {
+    margin: "8px 0 0", font: "var(--type-micro)", color: "var(--text-muted)",
+  };
 
   return (
     <div style={{ position: "relative", width: "100%", height, touchAction: "none" }}>
       <canvas
         ref={canvasRef}
-        aria-label="Trójwymiarowa mapa dopasowań — fioletowe punkty to mężczyźni, bursztynowe to kobiety, bliskość oznacza zgodność wartości"
+        aria-label="Trójwymiarowa mapa dopasowań — fioletowe punkty to mężczyźni, bursztynowe to kobiety, bliskość oznacza zgodność wartości. Przybliżaj kółkiem myszy, kliknij osobę, by zobaczyć jej kartę."
       />
       <div style={{
         position: "absolute", left: "12px", bottom: "10px",
@@ -333,6 +424,91 @@ export default function SpaceGraph({
           <i style={{ width: 9, height: 9, borderRadius: "50%", background: MAN_COLOR, display: "inline-block" }} /> mężczyźni
         </span>
       </div>
+
+      {viewChanged && (
+        <button
+          onClick={() => resetRef.current()}
+          style={{
+            position: "absolute", right: "12px", bottom: "10px",
+            padding: "6px 12px", borderRadius: "var(--radius-pill)",
+            border: "1px solid var(--border-hairline)",
+            background: "var(--surface-card)", color: "var(--text-secondary)",
+            font: "var(--type-micro)", cursor: "pointer",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          ↺ cały widok
+        </button>
+      )}
+
+      {sel && (
+        <div style={{
+          position: "absolute", top: "10px", right: "10px", zIndex: 6,
+          width: "320px", maxWidth: "calc(100% - 20px)",
+        }}>
+          <Card variant="raised" padding="16px">
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{
+                width: "48px", height: "48px", borderRadius: "50%", flexShrink: 0,
+                background: "var(--grad-veil, var(--surface-veil))",
+                border: "1px solid var(--border-hairline)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "var(--font-serif-display)", fontSize: "16px",
+                color: "var(--text-secondary)", filter: "blur(0.3px)",
+              }}>
+                {sel.initials}
+              </div>
+              <div style={{ flex: 1 }}>
+                <MatchBadge score={sel.matchPct ?? 0} size="sm" ring={false} />
+              </div>
+              <button
+                onClick={() => select(null)}
+                aria-label="Zamknij kartę"
+                style={{
+                  border: "none", background: "transparent", color: "var(--text-muted)",
+                  fontSize: "17px", lineHeight: 1, cursor: "pointer",
+                  padding: "4px", alignSelf: "flex-start",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {sel.components && (
+              <div style={{ marginTop: "12px" }}>
+                <ComponentBars components={sel.components} labelWidth={118} />
+              </div>
+            )}
+            {sel.passions.length > 0 && (
+              <p style={{ margin: "10px 0 0", font: "var(--type-caption)", color: "var(--text-secondary)" }}>
+                Wspólne pasje: {sel.passions.join(" · ")}
+              </p>
+            )}
+
+            {invited.has(sel.id) ? (
+              <p style={{ margin: "14px 0 0", font: "var(--type-caption)", color: "var(--accent-value)" }}>
+                ✨ Zapisane! Gdy gra FLIRT wystartuje, damy Ci znać.
+              </p>
+            ) : (
+              <div style={{ marginTop: "14px" }}>
+                <Button
+                  size="sm" variant="reward" full
+                  onClick={() => {
+                    track("flirt_interest", "matches", { target: sel.id, match_pct: sel.matchPct });
+                    setInvited((prev) => new Set(prev).add(sel.id));
+                  }}
+                >
+                  Chcę poznać tę osobę
+                </Button>
+              </div>
+            )}
+            <p style={micro}>
+              Poznawanie zaczyna się od gry FLIRT (wzajemne pytania) — w budowie.
+              Twoje zainteresowanie zapisujemy już teraz.
+            </p>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

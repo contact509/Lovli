@@ -2,20 +2,12 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { computeMatches, computeSpace } from "@/lib/matching";
-import type { MatchBreakdown } from "@/lib/engine/scoring";
 import { MatchBadge, Card } from "@/components/ds";
+import { ComponentBars } from "@/components/portal/match-ui";
 import { DeleteAccountButton } from "@/components/portal/DeleteAccountButton";
 import SpaceGraph from "@/components/portal/SpaceGraph";
 
 export const dynamic = "force-dynamic";
-
-const COMPONENT_LABELS: Array<[keyof MatchBreakdown, string]> = [
-  ["values_alignment", "Wartości"],
-  ["personality_alignment", "Osobowość"],
-  ["goals_alignment", "Cele życiowe"],
-  ["spiritual_alignment", "Duchowość"],
-  ["dynamic_alignment", "Zgodność w interakcji"],
-];
 
 export default async function MatchesPage() {
   const user = await getSessionUser();
@@ -36,7 +28,7 @@ export default async function MatchesPage() {
   const matches = all.slice(0, 20);
   const space = await computeSpace(
     db, user.id,
-    Object.fromEntries(all.map((m) => [m.user_id, Math.round(m.match_score * 100)]))
+    Object.fromEntries(all.map((m) => [m.user_id, m]))
   );
 
   return (
@@ -61,7 +53,8 @@ export default async function MatchesPage() {
           </h2>
           <p style={{ margin: "0 8px 6px", font: "var(--type-caption)", color: "var(--text-secondary)" }}>
             Każdy punkt to prawdziwy profil wartości. Im bliżej Ciebie, tym większa zgodność.
-            Przeciągnij, by obrócić; najedź na punkt, by zobaczyć dopasowanie.
+            Przeciągnij, by obrócić; przybliż kółkiem myszy (lub szczypnięciem);
+            kliknij osobę, by zobaczyć jej kartę.
           </p>
           <SpaceGraph people={space.people} sims={space.sims} />
         </Card>
@@ -96,24 +89,8 @@ export default async function MatchesPage() {
                 </div>
                 <MatchBadge score={Math.round(m.match_score * 100)} size="sm" />
               </div>
-              <div style={{ flex: 1, minWidth: "240px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                {COMPONENT_LABELS.map(([key, label]) => {
-                  const v = m.components[key];
-                  if (v === null || v === undefined) return null;
-                  const pct = Math.round((v as number) * 100);
-                  return (
-                    <div key={key} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ font: "var(--type-caption)", color: "var(--text-secondary)", width: "150px" }}>{label}</span>
-                      <div style={{ flex: 1, height: "5px", borderRadius: "var(--radius-pill)", background: "var(--surface-veil)" }}>
-                        <div style={{
-                          width: `${pct}%`, height: "100%", borderRadius: "var(--radius-pill)",
-                          background: pct >= 80 ? "var(--accent-success)" : "var(--accent-value)",
-                        }} />
-                      </div>
-                      <span style={{ font: "var(--type-caption)", color: "var(--text-muted)", width: "36px", textAlign: "right" }}>{pct}%</span>
-                    </div>
-                  );
-                })}
+              <div style={{ flex: 1, minWidth: "240px" }}>
+                <ComponentBars components={m.components} />
                 {m.shared_passions.length > 0 && (
                   <p style={{ margin: "6px 0 0", font: "var(--type-caption)", color: "var(--text-secondary)" }}>
                     Wspólne pasje: {m.shared_passions.join(" · ")}

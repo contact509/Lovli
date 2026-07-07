@@ -22,6 +22,13 @@ export async function loadMatchConfig(db: SupabaseClient): Promise<MatchConfig> 
   };
 }
 
+/** "Jan Kowalski" → "J. K." — anonymity by design, shared by cards and constellation. */
+export const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((p) => (p[0] ?? "").toUpperCase() + ".")
+    .join(" ");
+
 export type Match = {
   user_id: string;
   /** Anonymity by design: initials only until reveal (photos/names come later, via FLIRT). */
@@ -58,10 +65,7 @@ export async function computeMatches(
     const name = names[v.user_id] ?? "?";
     return {
       user_id: v.user_id as string,
-      initials: name
-        .split(/\s+/)
-        .map((p: string) => (p[0] ?? "").toUpperCase() + ".")
-        .join(" "),
+      initials: initialsOf(name),
       match_score: r.match_score,
       components: r.components,
       shared_passions: r.shared_passions.map((p) => PASSION_OPTIONS[p] ?? String(p)),
@@ -79,11 +83,16 @@ export async function computeMatches(
 // weighted-Euclidean on the flat vectors; hover % = real match_score.
 
 export type SpacePerson = {
-  name: string;
+  id: string;
+  /** initials only — the same anonymity rule as the match cards */
+  initials: string;
   man: boolean;
   you: boolean;
   /** real match_score vs "you" (cross-gender only), 0–100 */
   matchPct: number | null;
+  /** breakdown + shared passions for the click-open card (cross-gender only) */
+  components: MatchBreakdown | null;
+  passions: string[];
 };
 export type SpaceData = { people: SpacePerson[]; sims: number[][] };
 
@@ -94,7 +103,7 @@ const SPACE_CAP = 150;
 export async function computeSpace(
   db: SupabaseClient,
   userId: string,
-  scoreByUserId: Record<string, number>
+  matchByUserId: Record<string, Match>
 ): Promise<SpaceData | null> {
   const { data: me } = await db
     .from("profiles").select("gender, is_test").eq("user_id", userId).single();
@@ -118,11 +127,15 @@ export async function computeSpace(
     const flat = Array.isArray(uv) ? uv[0]?.flat : uv?.flat;
     if (!flat?.v) continue;
     flats.push(flat.v);
+    const m = matchByUserId[r.user_id as string];
     people.push({
-      name: (r.display_name as string).split(/\s+/)[0],
+      id: r.user_id as string,
+      initials: initialsOf(r.display_name as string),
       man: r.gender === "male",
       you: r.user_id === userId,
-      matchPct: scoreByUserId[r.user_id as string] ?? null,
+      matchPct: m ? Math.round(m.match_score * 100) : null,
+      components: m?.components ?? null,
+      passions: m?.shared_passions ?? [],
     });
   }
   if (!people[0]?.you) return null; // requester must be in the pool
