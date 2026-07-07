@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { QUESTIONS } from "./onboarding/questions";
 import type { Answers } from "./onboarding/payload";
@@ -14,6 +13,12 @@ import type { Answers } from "./onboarding/payload";
  *  - Lovli-side only: open answers (OPQ) may be read here, they never reach
  *    the matching engine.
  * Generated once per user, stored in `portraits`.
+ *
+ * Engine (Kris, 2026-07-07): OpenAI ChatGPT on a DEDICATED Lovli-only key
+ * (`LOVLI_OPENAI_API_KEY` — never the global OPENAI_API_KEY, never reused for
+ * other projects). Model: gpt-5-mini — strong quality tier without flagship
+ * pricing. Gemini 2.5 Flash stays as emergency fallback so a user never hits
+ * a dead end. (Claude variant existed at commit 3a7d1fb if ever needed.)
  */
 
 export type Portrait = {
@@ -25,7 +30,7 @@ export type Portrait = {
   filozofia: string;
 };
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "gpt-5-mini";
 
 const PORTRAIT_SCHEMA = {
   type: "object",
@@ -158,11 +163,9 @@ export async function getOrGeneratePortrait(
   let portrait: Portrait;
   let model = MODEL;
   try {
-    portrait = await generateWithClaude(input);
+    portrait = await generateWithOpenAI(input);
   } catch (e) {
-    // Primary engine is Claude (Opus 4.8) — as of 2026-07-07 the Anthropic
-    // account has no credits, so we fall back to Gemini until it's topped up.
-    console.error("Claude portrait failed, falling back to Gemini:", e);
+    console.error("OpenAI portrait failed, falling back to Gemini:", e);
     portrait = await generateWithGemini(input);
     model = GEMINI_MODEL;
   }
@@ -181,22 +184,31 @@ function validatePortrait(p: Portrait) {
   if (!ok) throw new Error("portrait failed shape validation");
 }
 
-async function generateWithClaude(input: string): Promise<Portrait> {
-  const client = new Anthropic({ timeout: 55_000, maxRetries: 1 });
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    thinking: { type: "adaptive" },
-    output_config: {
-      effort: "medium", // portrait = warm writing, not deep reasoning; keeps latency well under the route cap
-      format: { type: "json_schema", schema: PORTRAIT_SCHEMA as unknown as Record<string, unknown> },
-    },
-    system: SYSTEM,
-    messages: [{ role: "user", content: input }],
+async function generateWithOpenAI(input: string): Promise<Portrait> {
+  const key = process.env.LOVLI_OPENAI_API_KEY; // Lovli-dedicated key, by design
+  if (!key) throw new Error("LOVLI_OPENAI_API_KEY not configured");
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: MODEL,
+      max_completion_tokens: 8000, // includes gpt-5 reasoning tokens
+      messages: [
+        { role: "system", content: SYSTEM },
+        { role: "user", content: input },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "portret", strict: true, schema: PORTRAIT_SCHEMA },
+      },
+    }),
+    signal: AbortSignal.timeout(55_000),
   });
-  const text = response.content.find((b) => b.type === "text");
-  if (!text || text.type !== "text") throw new Error(`no text block (stop: ${response.stop_reason})`);
-  return JSON.parse(text.text) as Portrait;
+  if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error(`OpenAI returned no content (finish: ${data?.choices?.[0]?.finish_reason})`);
+  return JSON.parse(text) as Portrait;
 }
 
 const GEMINI_MODEL = "gemini-2.5-flash";
