@@ -141,7 +141,7 @@ export function OnboardingQuiz() {
     if (res.ok) {
       try { localStorage.removeItem(LS_KEY); } catch {}
       track("onboarding_submitted", "onboarding");
-      router.push("/matches");
+      router.push("/poznaj-siebie"); // the reward comes before the matches
     } else {
       const j = await res.json().catch(() => ({}));
       setBusy(false);
@@ -211,7 +211,7 @@ export function OnboardingQuiz() {
               ← Wstecz
             </Button>
             <Button variant={isLast ? "reward" : "primary"} disabled={busy} onClick={next}>
-              {busy ? "Zapisuję…" : isLast ? "Zakończ i pokaż dopasowania" : "Dalej →"}
+              {busy ? "Zapisuję…" : isLast ? "Zakończ — poznaj siebie" : "Dalej →"}
             </Button>
           </div>
         </div>

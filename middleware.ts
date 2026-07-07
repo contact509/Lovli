@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED = ["/onboarding", "/matches"];
+const PROTECTED = ["/onboarding", "/matches", "/poznaj-siebie"];
 
 /** Refresh the Supabase auth session and gate portal pages behind login. */
 export async function middleware(req: NextRequest) {
@@ -33,5 +33,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/onboarding/:path*", "/matches/:path*", "/login", "/register"],
+  matcher: ["/onboarding/:path*", "/matches/:path*", "/poznaj-siebie/:path*", "/login", "/register"],
 };

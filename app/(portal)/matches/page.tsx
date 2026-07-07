@@ -45,10 +45,13 @@ export default async function MatchesPage() {
         <h1 style={{ margin: "0 0 8px", fontFamily: "var(--font-serif-display)", fontSize: "clamp(28px, 5vw, 40px)", fontWeight: 600 }}>
           Twoje dopasowania
         </h1>
-        <p style={{ margin: 0, font: "var(--type-body)", color: "var(--text-secondary)" }}>
+        <p style={{ margin: "0 0 10px", font: "var(--type-body)", color: "var(--text-secondary)" }}>
           Osoby najbliższe Twoim wartościom — bez zdjęć i imion. Tożsamość odsłania się
           dopiero wtedy, gdy oboje tego chcecie. Procent to zgodność wartości, nie wyglądu.
         </p>
+        <a href="/poznaj-siebie" style={{ font: "var(--type-caption)", color: "var(--accent-value)" }}>
+          → Poznaj siebie: Twój portret wartości
+        </a>
       </div>
 
       {space && (
