@@ -106,7 +106,8 @@ def main():
             q["options"] = PASSION_OPTIONS
         elif typ in ("TEKST_DŁUGI", "TEKST_WOLNY"):
             q["type"] = "text"
-            q["maxLen"] = 500
+            # open reflections: room to actually write (Kris 07-07); passion note stays short
+            q["maxLen"] = 10000 if typ == "TEKST_DŁUGI" else 500
         else:
             raise SystemExit(f"unknown TYP {typ} for {kod}")
 
@@ -172,7 +173,10 @@ def main():
     step("lifestyle", "Twój styl życia",
          ["LS_01a", "LS_02a", "LS_03a", "LS_04a"])
     step("open", "Twoja historia", ["OPQ_01", "OPQ_02", "OPQ_03"],
-         "Ostatnie pytania są najważniejsze. Weź chwilę. Liczy się autentyczność — te odpowiedzi nigdy nie trafiają do silnika dopasowań.")
+         "Ostatnie pytania są najważniejsze. Weź chwilę — liczy się autentyczność. "
+         "Piszesz bezpiecznie: te odpowiedzi przechowujemy pod anonimowym identyfikatorem konta, "
+         "nie pod imieniem i nazwiskiem. Nikt nie zobaczy ich w aplikacji i nigdy nie trafiają "
+         "do silnika dopasowań — do badań idą wyłącznie w formie zanonimizowanej.")
 
     covered = {c for s in steps for c in s["items"]}
     missing = [c for c in order if c not in covered]

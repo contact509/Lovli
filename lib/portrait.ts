@@ -95,7 +95,7 @@ Zasady nienaruszalne:
 const fmt = (v: unknown) => (typeof v === "number" ? String(v) : "");
 
 /** Human-readable digest of all answers — question text + poles + value. */
-export function buildPortraitInput(answers: Answers): string {
+export function buildPortraitInput(answers: Answers, gender?: string | null): string {
   const lines: string[] = [];
   for (const q of Object.values(QUESTIONS)) {
     const v = answers[q.code];
@@ -127,8 +127,16 @@ export function buildPortraitInput(answers: Answers): string {
     }
   }
 
+  const genderLine =
+    gender === "female"
+      ? "PŁEĆ UŻYTKOWNIKA: kobieta — pisz do niej w rodzaju żeńskim (np. „jesteś gotowa”, „zbudowałaś”)."
+      : gender === "male"
+        ? "PŁEĆ UŻYTKOWNIKA: mężczyzna — pisz do niego w rodzaju męskim (np. „jesteś gotowy”, „zbudowałeś”)."
+        : "PŁEĆ UŻYTKOWNIKA: nieznana — pisz formami neutralnymi.";
+
   return [
     "ODPOWIEDZI UŻYTKOWNIKA Z ONBOARDINGU LOVLI:",
+    genderLine,
     "",
     lines.join("\n"),
     "",
@@ -159,7 +167,10 @@ export async function getOrGeneratePortrait(
     answers[r.code] = (r.value_list ?? r.value_text ?? r.value_num) as Answers[string];
   }
 
-  const input = buildPortraitInput(answers);
+  const { data: prof } = await db
+    .from("profiles").select("gender").eq("user_id", userId).maybeSingle();
+
+  const input = buildPortraitInput(answers, prof?.gender ?? null);
   let portrait: Portrait;
   let model = MODEL;
   try {

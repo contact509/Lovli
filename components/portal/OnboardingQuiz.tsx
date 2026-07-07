@@ -2,6 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { QUESTIONS, STEPS, type Question } from "@/lib/onboarding/questions";
+import { genderize, genderizeQuestion, type Gender } from "@/lib/gender";
 import { Button, Card, TextInput, ValueSlider } from "@/components/ds";
 import { track } from "@/lib/telemetry-client";
 
@@ -52,6 +53,7 @@ export function OnboardingQuiz() {
   const [loaded, setLoaded] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [gender, setGender] = React.useState<Gender | null>(null);
   const stepStart = React.useRef(Date.now());
 
   // Load saved progress: server autosave + localStorage fallback (local wins —
@@ -59,6 +61,14 @@ export function OnboardingQuiz() {
   React.useEffect(() => {
     (async () => {
       let merged: AnswersState = {};
+      try {
+        // profile gender drives grammatical forms in every rendered text
+        const prof = await fetch("/api/profile");
+        if (prof.ok) {
+          const g = (await prof.json())?.profile?.gender;
+          if (g === "male" || g === "female") setGender(g);
+        }
+      } catch {}
       try {
         const res = await fetch("/api/onboarding/save");
         if (res.ok) merged = { ...(await res.json()).answers };
@@ -196,12 +206,14 @@ export function OnboardingQuiz() {
                 fontFamily: special ? "var(--font-serif-quote)" : undefined,
                 fontStyle: special ? "italic" : undefined,
               }}>
-                {step.intro}
+                {gender ? genderize(step.intro, gender) : step.intro}
               </p>
             )}
           </div>
 
-          {items.map((q) => <QuestionField key={q.code} q={q} answers={answers} set={set} />)}
+          {items.map((q) => (
+            <QuestionField key={q.code} q={q} answers={answers} set={set} gender={gender} />
+          ))}
 
           {error && <div style={{ font: "var(--type-caption)", color: "#B4462E" }}>{error}</div>}
 
@@ -228,16 +240,20 @@ export function OnboardingQuiz() {
 // ---------------------------------------------------------------------------
 
 function QuestionField({
-  q, answers, set,
+  q, answers, set, gender,
 }: {
   q: Question; answers: AnswersState; set: (code: string, v: AnswerValue) => void;
+  gender: Gender | null;
 }) {
+  const g = (t?: string) => (t && gender ? genderize(t, gender) : t ?? "");
+  const qText = genderizeQuestion(q.code, q.text, gender);
+
   if (q.type === "slider") {
     const v = typeof answers[q.code] === "number" ? (answers[q.code] as number) : 50;
     return (
       <div>
-        <p style={{ margin: "0 0 10px", font: "var(--type-body)", fontWeight: 500 }}>{q.text}</p>
-        <ValueSlider value={v} lowLabel={q.low} highLabel={q.high}
+        <p style={{ margin: "0 0 10px", font: "var(--type-body)", fontWeight: 500 }}>{qText}</p>
+        <ValueSlider value={v} lowLabel={g(q.low)} highLabel={g(q.high)}
           onChange={(e) => set(q.code, parseInt(e.target.value, 10))} />
         {v === 50 && answers[q.code] === undefined && (
           <p style={{ margin: "4px 0 0", font: "var(--type-micro)", color: "var(--text-muted)", fontStyle: "italic" }}>
@@ -252,7 +268,7 @@ function QuestionField({
     const v = answers[q.code];
     return (
       <div>
-        <p style={{ margin: "0 0 10px", font: "var(--type-body)", fontWeight: 500 }}>{q.text}</p>
+        <p style={{ margin: "0 0 10px", font: "var(--type-body)", fontWeight: 500 }}>{qText}</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "10px" }}>
           {q.options?.map((label, i) => (
             <button key={i} type="button" onClick={() => set(q.code, i)}
@@ -263,7 +279,7 @@ function QuestionField({
                 background: v === i ? "var(--accent-value-tint)" : "var(--surface-raised)",
                 color: "var(--text-primary)", font: "var(--type-body)", lineHeight: "var(--lh-snug)",
               }}>
-              {label}
+              {g(label)}
             </button>
           ))}
         </div>
@@ -275,7 +291,7 @@ function QuestionField({
     const sel = Array.isArray(answers[q.code]) ? (answers[q.code] as number[]) : [];
     return (
       <div>
-        <p style={{ margin: "0 0 10px", font: "var(--type-body)", fontWeight: 500 }}>{q.text}</p>
+        <p style={{ margin: "0 0 10px", font: "var(--type-body)", fontWeight: 500 }}>{qText}</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
           {q.options?.map((label, i) => {
             const on = sel.includes(i);
@@ -301,7 +317,7 @@ function QuestionField({
   const v = typeof answers[q.code] === "string" ? (answers[q.code] as string) : "";
   return (
     <TextInput
-      label={q.text}
+      label={qText}
       multiline rows={5}
       value={v}
       maxLength={q.maxLen ?? 500}

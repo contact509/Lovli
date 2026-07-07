@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       answered_at: new Date().toISOString(),
     };
     if (typeof value === "number" && Number.isFinite(value)) row.value_num = Math.round(value);
-    else if (typeof value === "string") row.value_text = value.slice(0, 2000);
+    else if (typeof value === "string") row.value_text = value.slice(0, 12000); // open answers up to 10k + headroom
     else if (Array.isArray(value)) row.value_list = value;
     else continue;
     rows.push(row);

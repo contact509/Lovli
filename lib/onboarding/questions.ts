@@ -989,7 +989,7 @@ export const QUESTIONS: Record<string, Question> = {
     "text": "Co cię ukształtowało? Opisz jedno trudne doświadczenie które zbudowało cię jako człowieka.",
     "weight": 3,
     "type": "text",
-    "maxLen": 500
+    "maxLen": 10000
   },
   "OPQ_02": {
     "code": "OPQ_02",
@@ -997,7 +997,7 @@ export const QUESTIONS: Record<string, Question> = {
     "text": "Opisz trzy momenty w swoim życiu w których czułeś/aś się naprawdę szczęśliwy/a — co było w nich wspólnego?",
     "weight": 3,
     "type": "text",
-    "maxLen": 500
+    "maxLen": 10000
   },
   "OPQ_03": {
     "code": "OPQ_03",
@@ -1265,7 +1265,7 @@ export const STEPS: Step[] = [
       "OPQ_02",
       "OPQ_03"
     ],
-    "intro": "Ostatnie pytania są najważniejsze. Weź chwilę. Liczy się autentyczność — te odpowiedzi nigdy nie trafiają do silnika dopasowań."
+    "intro": "Ostatnie pytania są najważniejsze. Weź chwilę — liczy się autentyczność. Piszesz bezpiecznie: te odpowiedzi przechowujemy pod anonimowym identyfikatorem konta, nie pod imieniem i nazwiskiem. Nikt nie zobaczy ich w aplikacji i nigdy nie trafiają do silnika dopasowań — do badań idą wyłącznie w formie zanonimizowanej."
   }
 ];
 

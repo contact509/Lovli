@@ -91,7 +91,7 @@ export function PortraitView({ initial }: { initial: Portrait | null }) {
       </Card>
 
       <Card>
-        <h3 style={h3}>Twoje mocne strony jako partnera</h3>
+        <h3 style={h3}>Twoje mocne strony w relacji</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           {portrait.mocne_strony.map((m, i) => (
             <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
