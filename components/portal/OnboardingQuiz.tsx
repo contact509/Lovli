@@ -2,6 +2,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { QUESTIONS, STEPS, type Question } from "@/lib/onboarding/questions";
+import { CHAPTERS, chapterPos } from "@/lib/onboarding/chapters";
 import { genderize, genderizeQuestion, type Gender } from "@/lib/gender";
 import { Button, Card, TextInput, ValueSlider } from "@/components/ds";
 import { track } from "@/lib/telemetry-client";
@@ -11,6 +12,10 @@ import { track } from "@/lib/telemetry-client";
  * §3/§8). Sliders between opposing poles (default 50 = no clear preference),
  * fundamental questions (faith, children) woven mid-flow and visually marked,
  * open questions last (they never reach the matching engine).
+ *
+ * Framing (Boruta, 2026-07-08): the flow is a discovery of six AREAS of your
+ * life — a value promise up front (intro screen), chapter context in the
+ * header, and a short "area discovered" transition between chapters.
  *
  * Every step autosaves to the server; telemetry records step views/completes
  * and durations — that's the research layer (drop-off per screen, H1/D4/D7).
@@ -54,6 +59,10 @@ export function OnboardingQuiz() {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
   const [gender, setGender] = React.useState<Gender | null>(null);
+  // value-promise screen before question 1 (fresh profiles only — resume skips)
+  const [showIntro, setShowIntro] = React.useState(false);
+  // "area discovered" interstitial: index of the chapter we just entered
+  const [transitionTo, setTransitionTo] = React.useState<number | null>(null);
   const stepStart = React.useRef(Date.now());
 
   // Load saved progress: server autosave + localStorage fallback (local wins —
@@ -84,6 +93,12 @@ export function OnboardingQuiz() {
         || visibleItems(s, merged).some((q) => q.type === "slider" && merged[q.code] === undefined)
       );
       setStepIdx(idx === -1 ? STEPS.length - 1 : idx);
+      // the promise screen greets a fresh profile; a resumed one goes straight in
+      const anyAnswered = Object.keys(merged).some((c) => merged[c] !== undefined && merged[c] !== null);
+      if (!anyAnswered) {
+        setShowIntro(true);
+        track("onboarding_intro_view", "onboarding");
+      }
       setLoaded(true);
       track("onboarding_started", "onboarding");
     })();
@@ -142,6 +157,13 @@ export function OnboardingQuiz() {
     await saveStep(batch);
 
     if (!isLast) {
+      // crossing into a new chapter → celebrate the discovered area first
+      const cur = chapterPos(step.id);
+      const nxt = chapterPos(STEPS[stepIdx + 1].id);
+      if (cur && nxt && nxt.chapter !== cur.chapter) {
+        setTransitionTo(nxt.chapter);
+        track("chapter_complete", "onboarding", { chapter: CHAPTERS[cur.chapter].id });
+      }
       setStepIdx(stepIdx + 1);
       return;
     }
@@ -169,15 +191,72 @@ export function OnboardingQuiz() {
     return <p style={{ font: "var(--type-body)", color: "var(--text-muted)", textAlign: "center" }}>Wczytuję…</p>;
   }
 
+  const gTxt = (t: string) => (gender ? genderize(t, gender) : t);
+
+  // ---- value-promise intro (fresh profiles) --------------------------------
+  if (showIntro) {
+    return (
+      <IntroScreen
+        gTxt={gTxt}
+        onStart={() => {
+          setShowIntro(false);
+          track("onboarding_intro_start", "onboarding");
+        }}
+      />
+    );
+  }
+
+  // ---- "area discovered" transition between chapters -----------------------
+  if (transitionTo !== null) {
+    const done = CHAPTERS[transitionTo - 1];
+    const nxt = CHAPTERS[transitionTo];
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <Card glow="amber">
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px", textAlign: "center", padding: "8px 0" }}>
+            <span style={{ font: "var(--type-caption)", color: "var(--accent-reward)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Obszar odkryty ✓
+            </span>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-serif-display)", fontSize: "clamp(24px, 4.5vw, 34px)", fontWeight: 600 }}>
+              {done?.title}
+            </h2>
+            <div style={{ height: "1px", background: "var(--border-hairline)", margin: "2px 32px" }} />
+            <span style={{ font: "var(--type-caption)", color: "var(--text-secondary)" }}>
+              Przed tobą · obszar {transitionTo + 1} z {CHAPTERS.length}
+            </span>
+            <h3 style={{ margin: 0, fontFamily: "var(--font-serif-display)", fontSize: "clamp(20px, 3.5vw, 26px)", fontWeight: 600, color: "var(--accent-value)" }}>
+              {nxt.title}
+            </h3>
+            <p style={{ margin: "0 auto", maxWidth: "48ch", font: "var(--type-body)", color: "var(--text-secondary)" }}>
+              {gTxt(nxt.lead)}
+            </p>
+            <div>
+              <Button variant="reward" onClick={() => setTransitionTo(null)}>
+                Odkryj kolejny obszar →
+              </Button>
+            </div>
+          </div>
+        </Card>
+        <p style={{ font: "var(--type-micro)", color: "var(--text-muted)", textAlign: "center" }}>
+          Postęp zapisuje się automatycznie — możesz przerwać i wrócić w dowolnym momencie.
+        </p>
+      </div>
+    );
+  }
+
   const special = step.special;
+  const pos = chapterPos(step.id);
+  const chapter = pos ? CHAPTERS[pos.chapter] : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-      {/* progress */}
+      {/* progress — chapter context left, global % right */}
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px", marginBottom: "6px" }}>
           <span style={{ font: "var(--type-caption)", color: "var(--text-secondary)" }}>
-            Krok {stepIdx + 1} z {STEPS.length}
+            {chapter
+              ? <>Obszar {pos!.chapter + 1} z {CHAPTERS.length} · <strong style={{ color: "var(--text-primary)", fontWeight: 600 }}>{chapter.title}</strong> — krok {pos!.step + 1}/{chapter.steps.length}</>
+              : <>Krok {stepIdx + 1} z {STEPS.length}</>}
           </span>
           <span style={{ font: "var(--type-caption)", color: "var(--accent-value)" }}>{progress}%</span>
         </div>
@@ -238,6 +317,79 @@ export function OnboardingQuiz() {
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * The value-promise screen (Boruta, 2026-07-08): before question 1 the user
+ * has to know WHERE this leads (portrait + matches), see the map (six areas),
+ * hear that honesty is the whole point, and that the flow saves itself so it
+ * can be done in pieces. Research framing stays — first users are validators.
+ */
+function IntroScreen({ gTxt, onStart }: { gTxt: (t: string) => string; onStart: () => void }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <Card>
+        <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+          <div>
+            <h2 style={{
+              margin: 0, fontFamily: "var(--font-serif-display)",
+              fontSize: "clamp(24px, 4.5vw, 34px)", fontWeight: 600, lineHeight: 1.2,
+            }}>
+              Poznaj siebie. Potem — kogoś, kto do ciebie pasuje.
+            </h2>
+            <p style={{ margin: "10px 0 0", font: "var(--type-body)", color: "var(--text-secondary)" }}>
+              {gTxt("Przed tobą sześć obszarów do odkrycia — od temperamentu, przez wartości, po twoją historię. Na końcu dostaniesz swój portret «Poznaj siebie» i dopasowania oparte na tym, kim jesteś — nie na zdjęciach.")}
+            </p>
+          </div>
+
+          {/* the map — six areas, so it's clear where this leads */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {CHAPTERS.map((ch, i) => (
+              <div key={ch.id} style={{ display: "flex", gap: "12px", alignItems: "baseline" }}>
+                <span style={{
+                  font: "var(--type-caption)", color: "var(--accent-value)",
+                  fontVariantNumeric: "tabular-nums", minWidth: "18px",
+                }}>
+                  {i + 1}
+                </span>
+                <div>
+                  <span style={{ font: "var(--type-body)", fontWeight: 600 }}>{ch.title}</span>
+                  <span style={{ font: "var(--type-caption)", color: "var(--text-muted)" }}>
+                    {" "}· {ch.steps.length} {ch.steps.length === 1 ? "krok" : [2, 3, 4].includes(ch.steps.length) ? "kroki" : "kroków"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            padding: "14px 16px", borderRadius: "var(--radius-sm)",
+            background: "var(--accent-value-tint)", border: "1px solid var(--border-hairline)",
+          }}>
+            <p style={{ margin: 0, font: "var(--type-body)", color: "var(--text-primary)" }}>
+              {gTxt("Nie ma dobrych i złych odpowiedzi — odpowiadaj tak, jak jest, nie tak, jak wypada. Dopasowanie na podkolorowanym profilu spotka nie ciebie, tylko kogoś, kogo udajesz.")}
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <p style={{ margin: 0, font: "var(--type-caption)", color: "var(--text-secondary)" }}>
+              ⏱ Ok. 20–30 minut — ale nie musisz robić tego naraz. Postęp zapisuje się po każdym ekranie; {gTxt("możesz przerwać i wrócić, kiedy chcesz.")}
+            </p>
+            <p style={{ margin: 0, font: "var(--type-caption)", color: "var(--text-secondary)" }}>
+              🔬 Lovli jest w fazie badawczej — na końcu {gTxt("sam/a ocenisz, czy portret się zgadza. Tak pomagasz nam doskonalić metodę.")}
+            </p>
+          </div>
+
+          <div>
+            <Button variant="primary" onClick={onStart}>Zaczynam →</Button>
+          </div>
+        </div>
+      </Card>
+      <p style={{ font: "var(--type-micro)", color: "var(--text-muted)", textAlign: "center" }}>
+        Odpowiedzi otwarte nigdy nie trafiają do silnika dopasowań.
+      </p>
+    </div>
+  );
+}
 
 function QuestionField({
   q, answers, set, gender,
