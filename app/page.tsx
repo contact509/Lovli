@@ -1,5 +1,4 @@
 import { Button, LockedReveal, MatchBadge } from "@/components/ds";
-import WaitlistForm from "@/components/WaitlistForm";
 import ValueGraph from "@/components/ValueGraph";
 import "./home.css";
 
@@ -25,7 +24,8 @@ function Nav() {
           <a href="#konstelacja">Konstelacja</a>
           <a href="#zasady">Zasady</a>
           <a href="#badania">Badania</a>
-          <a href="#dolacz"><Button size="sm">Dołącz</Button></a>
+          <a href="/login">Zaloguj się</a>
+          <a href="/register"><Button size="sm">Dołącz</Button></a>
         </div>
       </div>
     </nav>
@@ -45,7 +45,7 @@ function Hero() {
         drugiej osoby — zdjęcie odsłaniacie razem, krok po kroku.
       </p>
       <div className="cta-row">
-        <a href="#dolacz"><Button size="lg">Zacznij od wartości</Button></a>
+        <a href="/register"><Button size="lg">Zacznij od wartości</Button></a>
         <a href="#jak"><Button size="lg" variant="ghost">Zobacz jak to działa</Button></a>
       </div>
 
@@ -244,12 +244,17 @@ function Fin() {
       <div className="wrap fin">
         <h2>Relacje z głębią zaczynają się tutaj</h2>
         <p style={{ color: "var(--text-secondary)", margin: "0 0 32px" }}>
-          Aplikacja jest w budowie. Zostaw adres, a damy Ci znać, gdy ruszą
-          pierwsze testy — będziesz w pierwszej grupie.
+          Trwają pierwsze testy — możesz dołączyć od razu. Załóż konto, przejdź
+          onboarding wartości i zobacz swoją konstelację dopasowań. Przy okazji
+          pomożesz nam sprawdzić, czy portret, który z niego powstaje, mówi prawdę.
         </p>
-        <WaitlistForm />
+        <a href="/register"><Button size="lg">Stwórz swój profil</Button></a>
+        <p className="fin-alt">
+          Masz już konto? <a href="/login">Zaloguj się</a>
+        </p>
         <p className="fin-note">
-          Zero spamu — jedna wiadomość o starcie. Projekt non-profit fundacji{" "}
+          Konto i wszystkie dane usuniesz jednym przyciskiem — zgodnie z RODO.
+          Projekt non-profit fundacji{" "}
           <a href={GOODWAY} target="_blank" rel="noopener noreferrer">Good Way</a>.
         </p>
       </div>

@@ -86,7 +86,9 @@
 .wl-form input[type="email"]::placeholder { color: var(--text-muted); }
 .wl-done { font-size: 17px; color: var(--accent-success); font-weight: 500; margin: 0; }
 .wl-err { width: 100%; font-size: 13px; color: var(--accent-reward); margin: 8px 0 0; }
-.fin-note { font-size: 13px; color: var(--text-muted); margin: 18px 0 0; }
+.fin-alt { font-size: 14px; color: var(--text-secondary); margin: 20px 0 0; }
+.fin-alt a { color: var(--accent-value); }
+.fin-note { font-size: 13px; color: var(--text-muted); margin: 14px 0 0; }
 .fin-note a { color: var(--text-secondary); }
 .lv-footer { border-top: 1px solid var(--border-hairline); padding: 36px 0; color: var(--text-muted); font-size: 13px; }
 .foot-in { display: flex; justify-content: space-between; align-items: center; }
