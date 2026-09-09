@@ -11,6 +11,14 @@ on:
     - cron: "17 17 * * *"
   workflow_dispatch:
 
+# actions: write is needed by the last step, which re-enables this workflow
+# via the API on every run. GitHub disables scheduled workflows after 60 days
+# without repo activity (warning email received 2026-09-09); re-enabling
+# resets that inactivity clock, so the ping keeps firing through quiet months.
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   ping:
     runs-on: ubuntu-latest
@@ -27,3 +35,8 @@ jobs:
           done
           echo "keep-alive failed after 3 attempts" >&2
           exit 1
+      - name: Keep this workflow enabled (reset 60-day inactivity clock)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"
