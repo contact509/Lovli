@@ -222,13 +222,22 @@ async function generateWithOpenAI(input: string): Promise<Portrait> {
   return JSON.parse(text) as Portrait;
 }
 
-const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
+
+// Vertex AI (GCP credits) when a Vertex key is set, else AI Studio key (fallback).
+function geminiUrl(): string {
+  const vertexKey = process.env.GEMINI_VERTEX_KEY || process.env.GEMINI_VERTEX_KEY_LOVLI;
+  if (vertexKey) {
+    return `https://aiplatform.googleapis.com/v1/publishers/google/models/${GEMINI_MODEL}:generateContent?key=${vertexKey}`;
+  }
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_VERTEX_KEY / GEMINI_API_KEY not configured");
+  return `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+}
 
 async function generateWithGemini(input: string): Promise<Portrait> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not configured");
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
+    geminiUrl(),
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
